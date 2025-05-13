@@ -1,0 +1,141 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_QUEUE 100
+
+typedef struct Node {
+    int key;
+    struct Node *firstChild;
+    struct Node *nextSibling;
+} Node;
+
+// ===== Utilitários =====
+
+Node* newNode(int key) {
+    Node* node = (Node*) malloc(sizeof(Node));
+    node->key = key;
+    node->firstChild = NULL;
+    node->nextSibling = NULL;
+    return node;
+}
+
+void addChild(Node* parent, Node* child) {
+    if (!parent->firstChild) {
+        parent->firstChild = child;
+    } else {
+        Node* temp = parent->firstChild;
+        while (temp->nextSibling) temp = temp->nextSibling;
+        temp->nextSibling = child;
+    }
+}
+
+Node* copyTree(Node* root) {
+    if (!root) return NULL;
+    Node* newRoot = newNode(root->key);
+    newRoot->firstChild = copyTree(root->firstChild);
+    newRoot->nextSibling = copyTree(root->nextSibling);
+    return newRoot;
+}
+
+Node* sumTrees(Node* t1, Node* t2) {
+    if (!t1 && !t2) return NULL;
+    if (!t1) return copyTree(t2);
+    if (!t2) return copyTree(t1);
+
+    Node* result = newNode(t1->key + t2->key);
+
+    Node *c1 = t1->firstChild;
+    Node *c2 = t2->firstChild;
+    Node *last = NULL;
+
+    while (c1 || c2) {
+        Node* summed = sumTrees(c1, c2);
+        if (!result->firstChild)
+            result->firstChild = summed;
+        else
+            last->nextSibling = summed;
+
+        last = summed;
+        if (c1) c1 = c1->nextSibling;
+        if (c2) c2 = c2->nextSibling;
+    }
+
+    return result;
+}
+
+void printTree(Node* root, int level) {
+    if (!root) return;
+    for (int i = 0; i < level; i++) printf("  ");
+    printf("%d\n", root->key);
+    printTree(root->firstChild, level + 1);
+    printTree(root->nextSibling, level);
+}
+
+void freeTree(Node* root) {
+    if (!root) return;
+    freeTree(root->firstChild);
+    freeTree(root->nextSibling);
+    free(root);
+}
+
+// ===== Monta árvore com entrada do usuário =====
+
+Node* buildTreeFromUser() {
+    int key, n, childKey;
+    printf("Digite o valor da raiz: ");
+    scanf("%d", &key);
+
+    Node* root = newNode(key);
+
+    // Fila para BFS (vetor de ponteiros para Node)
+    Node* queue[MAX_QUEUE];
+    int front = 0, rear = 0;
+
+    queue[rear++] = root;
+
+    while (front < rear) {
+        Node* current = queue[front++];
+        printf("Quantos filhos tem o nó %d? ", current->key);
+        scanf("%d", &n);
+
+        for (int i = 0; i < n; i++) {
+            printf("  Valor do filho %d de %d: ", i + 1, current->key);
+            scanf("%d", &childKey);
+
+            Node* child = newNode(childKey);
+            addChild(current, child);
+            queue[rear++] = child;
+        }
+    }
+
+    return root;
+}
+
+// ===== MAIN =====
+
+int main() {
+    printf("### Montagem da Árvore 1 ###\n");
+    Node* tree1 = buildTreeFromUser();
+
+    printf("\n### Montagem da Árvore 2 ###\n");
+    Node* tree2 = buildTreeFromUser();
+
+    printf("\nÁrvore 1:\n");
+    printTree(tree1, 0);
+
+    printf("\nÁrvore 2:\n");
+    printTree(tree2, 0);
+
+    Node* summed = sumTrees(tree1, tree2);
+
+    printf("\nÁrvore Somada:\n");
+    printTree(summed, 0);
+
+    // Libera memória
+    freeTree(tree1);
+    freeTree(tree2);
+    freeTree(summed);
+
+    return 0;
+}
